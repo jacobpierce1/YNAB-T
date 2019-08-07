@@ -24,11 +24,7 @@ class ToolbarWidget( QWidget ) :
         toggle_task_button = QPushButton( 'Toggle Task' )
         toggle_task_button.clicked.connect( self.toggle_task_button_clicked ) 
         layout.addWidget( toggle_task_button )
-        
-        # pause_task_button = QPushButton( 'Pause Task' )
-        # start_task_button.clicked.connect( self.pause_task_button_clicked )
-        # layout.addWidget( pause_task_button )
-        
+                
         reset_task_button = QPushButton( 'Reset Task' ) 
         reset_task_button.clicked.connect( self.reset_task_button_clicked )
         layout.addWidget( reset_task_button )

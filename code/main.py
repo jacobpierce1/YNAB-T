@@ -2,11 +2,22 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import * 
 from PyQt5 import QtCore
 
+import atexit 
 
-import gui_config 
+
+import gui_config
+
+
+# custom managers
+from task_manager import TaskManager
+
+# custom widgets 
 from toolbar_widget import ToolbarWidget 
 from pomodoro_widget import PomodoroWidget
 from task_table_widget import TaskTableWidget
+from schedule_widget import ScheduleWidget 
+from task_options_widget import TaskOptionsWidget
+from time_manager import TimeManager 
 # from goal_widget import GoalWidget 
 
 
@@ -31,14 +42,28 @@ class App( QWidget ) :
         layout = QVBoxLayout()
         self.setLayout( layout ) 
 
-        
-        pomodoro = PomodoroWidget()
-        task_table = TaskTableWidget()
+        # all managers 
+        task_manager = TaskManager() 
 
-        tmplayout = QHBoxLayout()
-        tmplayout.addWidget( task_table )
-        tmplayout.addWidget( pomodoro ) 
-        layout.addLayout( tmplayout ) 
+        atexit.register( task_manager.save_active_tasks ) 
+        
+        # all widgets 
+        task_table = TaskTableWidget( task_manager )
+        pomodoro = PomodoroWidget( task_manager, task_table )
+        time_manager = TimeManager( task_manager, task_table ) 
+        # schedule = ScheduleWidget( task_manager )
+        task_options = TaskOptionsWidget() 
+
+        vlayout = QVBoxLayout()
+        vlayout.addWidget( pomodoro )
+        # vlayout.addWidget( schedule )
+        vlayout.addWidget( task_options ) 
+        
+        hlayout = QHBoxLayout()
+        hlayout.addWidget( task_table )
+        hlayout.addLayout( vlayout ) 
+        
+        layout.addLayout( hlayout ) 
         
         toolbar = ToolbarWidget( pomodoro )
         layout.addWidget( toolbar )

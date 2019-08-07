@@ -1,0 +1,6 @@
+research: simulations, cluster env, analysis	15.0	0	0
+research: read books	10.0	0	0
+research: read papers	10.0	0	0
+hobbies: guitar	10	0	0
+hobbies: side projects	10	0	0
+life	20	0	0
