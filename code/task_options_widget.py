@@ -12,9 +12,14 @@ TASK_OPTIONS_EXCESS_POLICIES = [ 'Good', 'Bad', 'Neutral' ]
 class TaskOptionsWidget( QWidget ) :
 
 
-    def __init__( self ) :
+    def __init__( self, controller ) :
         super().__init__()
 
+        self.controller = controller
+
+
+    def init( self ) : 
+        
         toplayout = QHBoxLayout()
         self.setLayout( toplayout )
 

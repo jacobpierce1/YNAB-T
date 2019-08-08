@@ -28,6 +28,29 @@ import sys
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
+class Controller( object ) :
+    
+    task_manager = None
+    time_manager = None
+    
+    task_table = None
+    time_manager = None
+    task_options = None 
+    
+        
+    def __init__( self ) :
+        pass 
+    
+    def init( self, task_manager, time_manager,
+              task_table, pomodoro, task_options  ) :
+        
+        self.task_manager = task_manager
+        self.time_manager = time_manager 
+
+        self.task_table = task_table
+        self.pomodoro = pomodoro
+        self.task_options = task_options 
+
 
 
     
@@ -42,18 +65,33 @@ class App( QWidget ) :
         layout = QVBoxLayout()
         self.setLayout( layout ) 
 
+        controller = Controller() 
+        
         # all managers 
-        task_manager = TaskManager() 
+        task_manager = TaskManager( controller ) 
+        time_manager = TimeManager( controller )
 
-        atexit.register( task_manager.save_active_tasks ) 
+        # atexit.register( task_manager.save_active_tasks ) 
         
         # all widgets 
-        task_table = TaskTableWidget( task_manager )
-        pomodoro = PomodoroWidget( task_manager, task_table )
-        time_manager = TimeManager( task_manager, task_table ) 
+        task_table = TaskTableWidget( controller )
+        pomodoro = PomodoroWidget( controller )
+        
         # schedule = ScheduleWidget( task_manager )
-        task_options = TaskOptionsWidget() 
+        task_options = TaskOptionsWidget( controller ) 
 
+
+        controller.init( task_manager, time_manager,
+                         task_table, pomodoro, task_options ) 
+
+        task_manager.init()
+        time_manager.init()
+
+        task_table.init()
+        pomodoro.init()
+        task_options.init()
+
+        
         vlayout = QVBoxLayout()
         vlayout.addWidget( pomodoro )
         # vlayout.addWidget( schedule )
@@ -65,8 +103,8 @@ class App( QWidget ) :
         
         layout.addLayout( hlayout ) 
         
-        toolbar = ToolbarWidget( pomodoro )
-        layout.addWidget( toolbar )
+        # toolbar = ToolbarWidget( pomodoro )
+        # layout.addWidget( toolbar )
 
         
 

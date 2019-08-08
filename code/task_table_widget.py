@@ -18,9 +18,6 @@ QProgressBar{
     border: 2px solid grey;
     border-radius: 5px;
     text-align: center
-}
-
-QProgressBar::chunk {
     background-color: lightblue;
     width: 10px;
     margin: 1px;
@@ -61,12 +58,22 @@ class MyProgressBar( QProgressBar ):
 class TaskTableWidget( QWidget ) :
 
 
-    active_row = None
+    # active_row = None
+    current_timescale = 1
+    active_task_name = None 
     
-    def __init__( self, task_manager ) :
+    
+    def __init__( self, controller ) :
         super().__init__()
+        self.controller = controller
 
-        self.task_manager = task_manager 
+
+        
+    def init( self ) :
+        
+        # self.controller = controller
+        
+        self.task_manager = self.controller.task_manager 
         
         toplayout = QHBoxLayout()
         self.setLayout( toplayout )
@@ -92,7 +99,8 @@ class TaskTableWidget( QWidget ) :
 
         layout.addLayout( hlayout ) 
 
-        nrows = len( self.task_manager ) 
+        # dynamically expand
+        nrows = 0 # len( self.task_manager ) 
         ncols = 3 # 4
         
         self.table = QTableWidget( nrows, ncols ) 
@@ -109,23 +117,11 @@ class TaskTableWidget( QWidget ) :
         self.table.setColumnWidth( 0, 200 )
         self.table.setColumnWidth( 1, 80 )
         # self.table.setColumnWidth( 2, 0 ) 
+
+        for task_name in self.task_manager.get_task_names() :
+            self.add_task_to_table( task_name ) 
         
-        for r in range( nrows ) :
-
-            task = self.task_manager.active_tasks[ r ]
-            
-            self.table.setCellWidget( r, 0, QLabel( task.name ) )
-            self.table.setCellWidget( r, 1, QLineEdit( '%.1f' % task.allocation ) )
-            # self.table.setCellWidget( r, 2, QLabel( '%.2f' % task.usage ) )
-
-            bar = MyProgressBar()
-            bar.setMaximum( TASK_BAR_MAX )
-            bar.setMinimum( 0 )
-            progress = TASK_BAR_MAX * task.usage / task.allocation
-            bar.setValue( progress ) 
-            bar.setOrientation( QtCore.Qt.Horizontal )
-            self.table.setCellWidget( r, 2, bar ) 
-
+        # for r in range( nrows ) :
 
         self.reload() 
             
@@ -137,12 +133,105 @@ class TaskTableWidget( QWidget ) :
         delete_button = QPushButton( '-' )
 
         hlayout.addWidget( add_button ) 
-        hlayout.addWidget( delete_button ) 
+        hlayout.addWidget( delete_button )
+
+        add_button.clicked.connect( self.add_button_clicked )
+        delete_button.clicked.connect( self.delete_button_clicked ) 
 
         layout.addLayout( hlayout ) 
 
+
+
+    # we obtain the task name directly from the label to account for the fact
+    # that the user may change the task name. 
+    def budget_entry_changed( self, task_name_label, new_budget ) :
+        try :
+            budgeted = float( new_budget )
+        except :
+            budgeted = 0
+
+        task_name = task_name_label.text()
+        timescale  = self.current_timescale
+
+        self.task_manager.current_progress_file[ task_name ][ 'budgeted' ][ timescale ] = budgeted 
+        self.update_progress_bar( task_name ) 
+                    
         
 
+    def add_button_clicked( self ) :
+
+        task_name, okPressed = QInputDialog.getText( self, 'Enter Task Name', '',
+                                                QLineEdit.Normal, '' )
+        
+        if okPressed and task_name != '':
+            self.task_manager.add_task( task_name )
+            self.add_task_to_table( task_name ) 
+            self.controller.pomodoro.update_task_cbox()
+
+        else :
+            print( 'ERORR: unable to add task...' )
+
+            
+
+    def add_task_to_table( self, task_name ) :
+        
+        timescale = self.current_timescale
+        
+        allocation = self.task_manager.get_budgeted( task_name, timescale )
+        usage = self.task_manager.get_usage( task_name, timescale )
+        row = self.task_manager.get_row( task_name )
+        # policy = self.task_manager.get_policy( task_name, timescale )
+
+
+        print( 'adding task to task table' )
+        print( allocation )
+        print( usage )
+        print( row ) 
+
+        # add row at bottom 
+        self.table.insertRow( self.table.rowCount() )
+
+        task_name_label = QLabel( task_name )
+        self.table.setCellWidget( row, 0, task_name_label )
+
+        allocation_entry = QLineEdit( '%.1f' % allocation )
+        allocation_entry.setValidator( QDoubleValidator() )
+
+        tmp = lambda event : self.budget_entry_changed( task_name_label, event )
+        allocation_entry.textChanged[ str ].connect( tmp )
+        
+        self.table.setCellWidget( row, 1, allocation_entry ) 
+        # self.table.setCellWidget( r, 2, QLabel( '%.2f' % task.usage ) )
+        
+        bar = MyProgressBar()
+        bar.setMaximum( TASK_BAR_MAX )
+        bar.setMinimum( 0 )
+
+        if allocation == 0 : 
+            progress = 0
+        else : 
+            progress = TASK_BAR_MAX * usage / allocation
+            
+        bar.setValue( progress ) 
+        bar.setOrientation( QtCore.Qt.Horizontal )
+        
+        self.table.setCellWidget( row, 2, bar )
+        
+        # bar = self.table.item( r, 2 )
+        # print( bar )
+        # print( type( bar ) ) 
+        # bar.setFlags( bar.flags() ^ Qt.ItemIsEnabled )
+        
+        # self.table.
+
+
+
+    # todo: move to inactive tasks 
+    def delete_button_clicked( self ) :
+        # task_name = self.get_active_task_name()
+        # self.task_manager.delete_task( task_name ) 
+        ...
+        
 
     def daily_button_clicked( self ) :
         ...
@@ -161,22 +250,38 @@ class TaskTableWidget( QWidget ) :
         
 
     def update_active_progress_bar( self ) :
-        self.update_progress_bar( self.active_row ) 
+        task_name = self.controller.pomodoro.active_task_name
+        self.update_progress_bar( task_name ) 
         
 
-    def update_progress_bar( self, row ) :
-        task = self.task_manager.active_tasks[ row ]
+    def update_progress_bar( self, task_name ) :
+        # task = self.task_manager.active_tasks[ row ]
 
-        progress = TASK_BAR_MAX * task.usage / task.allocation
+        timescale = self.current_timescale
+        
+        usage = self.task_manager.get_usage( task_name, timescale )
+        allocation = self.task_manager.get_budgeted( task_name, timescale )
+        row = self.task_manager.get_row( task_name )
+
+        print( 'update progress bar' ) 
+        print( allocation )
+        print( usage )
+        print( row ) 
+        
+        if allocation == 0 : 
+            progress = 0 
+        else :
+            progress = TASK_BAR_MAX * usage / allocation
+
         progress = min( progress, TASK_BAR_MAX )
-
+        
         bar = self.table.cellWidget( row, 2 )
         bar.setValue( progress )
 
         # if progress == TASK_BAR_MAX :
             
 
-        hours, mins = divmod( task.usage * 60, 60 )
+        hours, mins = divmod( usage * 60, 60 )
         label = '%d:%s' % ( int( hours ), str( int( mins ) ).zfill(2) )
 
         bar.setToolTip( label )
@@ -191,7 +296,19 @@ class TaskTableWidget( QWidget ) :
     # reload all data from task manager 
     def reload( self ) :
 
-        for r in range( len( self.task_manager.active_tasks ) ) :
+        for task_name in self.task_manager.get_task_names() :
             # self.update_usage( r )             
-            self.update_progress_bar( r ) 
+            self.update_progress_bar( task_name ) 
+        
+
+
+
+
+            
+# class EnterTaskNameDialog( QDialog ) :
+
+#     def __init__( self, task_table_widget ) :
+#         super().__init__() 
+#         self.task_table_widget = task_table_widget
+
         

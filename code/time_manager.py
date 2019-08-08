@@ -19,10 +19,14 @@ CURRENT_WEEK_START_DATE_FILE = data_path + 'current_week_start_date'
 
 class TimeManager( object ) :
 
-    def __init__( self, task_manager, task_table ) :
+    def __init__( self, controller ) :
+        self.controller = controller
 
-        self.task_manager = task_manager
-        self.task_table = task_table
+        
+    def init( self ) : 
+
+        self.task_manager = self.controller.task_manager
+        self.task_table = self.controller.task_table
 
         self.check_time()
         
