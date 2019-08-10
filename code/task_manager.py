@@ -1,27 +1,21 @@
 import os 
-import gui_config
 import threading
 import time
 import h5py
 import numpy as np 
-import sys 
+import sys
 
-data_path = os.path.dirname(os.path.abspath(__file__)) + '/../'
+import gui_config
 
 
-if gui_config.DEVELOPER_MODE :
-    data_path += '.local_debug/'
-else :
-    data_path += '.local/'
+
 
 # CURRENT_TASKS_FILE = data_path + 'active_tasks.txt'
 
 # count the accumulated time for each timescale in this file. at least
 # until we introduce transactions.
-CURRENT_PROGRESS_FILE = data_path + 'current_progress.hdf5'
+CURRENT_PROGRESS_FILE = gui_config.data_path + 'current_progress.hdf5'
 
-
-NUM_TIMESCALES = 5
 
 
 EXCESS_GOOD, EXCESS_BAD, EXCESS_NEUTRAL = [ 0, 1, 2 ] 
@@ -76,17 +70,20 @@ class TaskManager( object ) :
         pass 
         
 
+    def close( self ) :
+        self.current_progress_file.close() 
+    
         
 
     def add_task( self, task_name ) :
         grp = self.current_progress_file.create_group( task_name )
 
-        dset = grp.create_dataset( 'budgeted', ( NUM_TIMESCALES, ), dtype = float )
-        dset = grp.create_dataset( 'usage', ( NUM_TIMESCALES, ), dtype = float )
-        dset = grp.create_dataset( 'policy', ( NUM_TIMESCALES, ), dtype = float )
+        dset = grp.create_dataset( 'budgeted', ( gui_config.NUM_TIMESCALES, ), dtype = float )
+        dset = grp.create_dataset( 'usage', ( gui_config.NUM_TIMESCALES, ), dtype = float )
+        dset = grp.create_dataset( 'policy', ( gui_config.NUM_TIMESCALES, ), dtype = float )
         dset = grp.create_dataset( 'row', (1,), dtype = float )
 
-        z = np.zeros( NUM_TIMESCALES ) 
+        z = np.zeros( gui_config.NUM_TIMESCALES ) 
 
         self.current_progress_file[ task_name ][ 'budgeted' ][...] = z
         self.current_progress_file[ task_name ][ 'usage' ][...] = z
@@ -100,46 +97,85 @@ class TaskManager( object ) :
                            
 
     def delete_task( self, task_name ) :
-        del self.current_progress_file[ task_name ]
-
+        try : 
+            del self.current_progress_file[ task_name ]
+        except :
+            print( 'ERROR: unable to delete task.' ) 
+            
         
     def set_budgeted( self, task_name, budgeted, timescale ) :
-        task = self.current_progress_file[ task_name ]
-        task[ 'budgeted' ][ timescale ] = budgeted
+        try : 
+            self.current_progress_file[ task_name ][ 'budgeted' ][ timescale ] = budgeted
+        except :
+            print( 'ERROR: unable to set budgeted amount.' ) 
 
         
     def get_budgeted( self, task_name, timescale ) :
-        return self.current_progress_file[ task_name ][ 'budgeted' ][ timescale ]
-        
+        try :
+            return self.current_progress_file[ task_name ][ 'budgeted' ][ timescale ]
+        except :
+            print( 'ERROR: unable to get budgeted amount.' ) 
+
+            
     def set_usage( self, task_name, usage, timescale ) : 
         try :
-            task = self.current_progress_file[ task_name ]
-            task[ 'usage' ][ timescale ] = usage
+            self.current_progress_file[ task_name ][ 'usage' ][ timescale ] = usage
         except :
             print( 'ERROR: program crash, error setting usage' )
             sys.exit(0)
             
+            
+    def set_usages( self, task_name, usages ) : 
+        try :
+            self.current_progress_file[ task_name ][ 'usage' ][:] = usages
+        except :
+            print( 'ERROR: program crash, error setting usages' )
+            sys.exit(0)
+
+            
     def get_usage( self, task_name, timescale ) :
-        print( 'get usage: task_name = ' + str( task_name ) + ' timescale = ' + str( timescale ) )
-        return self.current_progress_file[ task_name ][ 'usage' ][ timescale ]
+        # print( 'get usage: task_name = ' + str( task_name ) + ' timescale = ' + str( timescale ) )
+        try : 
+            return self.current_progress_file[ task_name ][ 'usage' ][ timescale ]
+        except :
+            print( 'ERROR: unable to get usage.' )
+
+            
+    def get_usages( self, task_name ) :
+        # print( 'get usage: task_name = ' + str( task_name ) + ' timescale = ' + str( timescale ) )
+        try : 
+            return self.current_progress_file[ task_name ][ 'usage' ][:]
+        except :
+            print( 'ERROR: unable to get usages.' ) 
         
         
     def set_policy( self, task_name, policy, timescale = None ) :
-        task = self.current_progress_file[ task_name ]
-        task[ 'policy' ][:] = policy 
+        try : 
+            self.current_progress_file[ task_name ][ 'policy' ][:] = policy 
+        except :
+            print( 'ERROR: unable to set policy.' ) 
 
-                
+            
     def get_policy( self, task_name, timescale ) :
-        return self.current_progress_file[ task_name ][ 'policy' ][ timescale ] 
+        try : 
+            return self.current_progress_file[ task_name ][ 'policy' ][ timescale ] 
+        except :
+            print( 'ERROR: unable to get policy.' ) 
 
-
+            
     def set_row( self, task_name, row ) :
-        task = self.current_progress_file[ task_name ]
-        task[ 'row' ] = row
+        try : 
+            self.current_progress_file[ task_name ][ 'row' ] = row
+        except :
+            print( 'ERROR: unable to set row.' ) 
 
+            
     def get_row( self, task_name ) :
-        return self.current_progress_file[ task_name ][ 'row' ][0]
-        
+        try : 
+            return self.current_progress_file[ task_name ][ 'row' ][0]
+        except :
+            print( 'ERROR: unable to get row.' )
+            
         
     def get_task_names( self ) :
         return self.current_progress_file.keys()
@@ -208,8 +244,8 @@ class TaskManager( object ) :
 
         
     def clear_progress( self, timescale ) :
-        for task in self.current_progress_file :
-            task[ 'usage' ][ timescale ] = 0
+        for task_name in self.current_progress_file :
+            self.current_progress_file[ task_name ][ 'usage' ][ timescale ] = 0
 
             
 

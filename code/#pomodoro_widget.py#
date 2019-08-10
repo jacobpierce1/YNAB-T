@@ -228,7 +228,7 @@ class PomodoroWidget( QWidget ) :
     # def reset( self ) :
     #     ... 
 
-
+    
     
     def update_timer_label( self ) :
         

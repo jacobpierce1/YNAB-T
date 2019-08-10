@@ -71,7 +71,7 @@ class App( QWidget ) :
         task_manager = TaskManager( controller ) 
         time_manager = TimeManager( controller )
 
-        # atexit.register( task_manager.save_active_tasks ) 
+        atexit.register( task_manager.close ) 
         
         # all widgets 
         task_table = TaskTableWidget( controller )

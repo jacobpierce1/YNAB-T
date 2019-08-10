@@ -18,9 +18,11 @@ QProgressBar{
     border: 2px solid grey;
     border-radius: 5px;
     text-align: center
+}
+
+QProgressBar::chunk {
     background-color: lightblue;
     width: 10px;
-    margin: 1px;
 }
 """
 
@@ -34,22 +36,29 @@ QProgressBar{
 QProgressBar::chunk {
     background-color: red;
     width: 10px;
-    margin: 1px;
 }
 """
 
 class MyProgressBar( QProgressBar ):
-    def __init__(self, parent = None):
+
+    
+    def __init__( self, parent = None ):
         QProgressBar.__init__(self, parent)
         self.setStyleSheet(DEFAULT_STYLE)
+        self.completed = 0
 
-    def setValue(self, value):
+        
+    def setValue( self, value ):
         QProgressBar.setValue(self, value)
 
         if value == self.maximum():
             self.setStyleSheet(COMPLETED_STYLE)
+            self.completed = 1
 
-
+        else :
+            if self.completed :
+                self.setStyleSheet( DEFAULT_STYLE )
+                self.completed = 0 
 
 
 
@@ -59,7 +68,7 @@ class TaskTableWidget( QWidget ) :
 
 
     # active_row = None
-    current_timescale = 1
+    active_timescale = 0
     active_task_name = None 
     
     
@@ -82,28 +91,25 @@ class TaskTableWidget( QWidget ) :
         layout = QVBoxLayout()
         box.setLayout( layout ) 
         toplayout.addWidget( box )
-
-
+        
         hlayout = QHBoxLayout()
-        daily_button = QPushButton( 'Daily' )
-        daily_button.clicked.connect( self.daily_button_clicked ) 
-        hlayout.addWidget( daily_button )
 
-        weekly_button = QPushButton( 'Weekly' )
-        weekly_button.clicked.connect( self.weekly_button_clicked ) 
-        hlayout.addWidget( weekly_button )
+        timescale_labels = [ 'Day', 'Week', 'Month', 'Quarter', 'Year' ]
 
-        monthly_button = QPushButton( 'Monthly' )
-        monthly_button.clicked.connect( self.monthly_button_clicked ) 
-        hlayout.addWidget( monthly_button ) 
+        self.timescale_combobox = QComboBox()
+        self.timescale_combobox.addItems( timescale_labels )
+        self.timescale_combobox.setCurrentIndex( self.active_timescale )
+        self.timescale_combobox.activated.connect( self.timescale_combobox_activated )
+
+        hlayout.addWidget( self.timescale_combobox ) 
 
         layout.addLayout( hlayout ) 
 
-        # dynamically expand
-        nrows = 0 # len( self.task_manager ) 
+        nrows = len( self.task_manager ) 
         ncols = 3 # 4
         
-        self.table = QTableWidget( nrows, ncols ) 
+        self.table = QTableWidget( nrows, ncols )
+        self.table.cellDoubleClicked.connect( self.cell_double_clicked ) 
 
         self.table.setHorizontalHeaderLabels( [ 'Task', 'Budgeted', 'Spent',
                                                 'Progress' ] )
@@ -119,11 +125,11 @@ class TaskTableWidget( QWidget ) :
         # self.table.setColumnWidth( 2, 0 ) 
 
         for task_name in self.task_manager.get_task_names() :
-            self.add_task_to_table( task_name ) 
+            self.add_task_to_table( task_name, append = 0 ) 
         
         # for r in range( nrows ) :
 
-        self.reload() 
+        # self.reload() 
             
         layout.addWidget( self.table ) 
             
@@ -141,6 +147,26 @@ class TaskTableWidget( QWidget ) :
         layout.addLayout( hlayout ) 
 
 
+    def cell_double_clicked( self, row, col ) :
+
+        if col != 0 :
+             return 
+         
+        label = self.table.cellWidget( row, 0 )
+        task_name = label.text()
+        
+        self.controller.pomodoro.set_task_cbox_task( task_name )
+
+        # start timer if not running already 
+        if not self.controller.pomodoro.running :
+            self.controller.pomodoro.toggle_task_button_clicked() 
+         
+        
+    def timescale_combobox_activated( self ) :
+         self.active_timescale = self.timescale_combobox.currentIndex()
+         self.reload_table()
+        
+        
 
     # we obtain the task name directly from the label to account for the fact
     # that the user may change the task name. 
@@ -151,11 +177,11 @@ class TaskTableWidget( QWidget ) :
             budgeted = 0
 
         task_name = task_name_label.text()
-        timescale  = self.current_timescale
+        timescale  = self.active_timescale
 
         self.task_manager.current_progress_file[ task_name ][ 'budgeted' ][ timescale ] = budgeted 
         self.update_progress_bar( task_name ) 
-                    
+        
         
 
     def add_button_clicked( self ) :
@@ -173,23 +199,18 @@ class TaskTableWidget( QWidget ) :
 
             
 
-    def add_task_to_table( self, task_name ) :
+    def add_task_to_table( self, task_name, append = 1 ) :
         
-        timescale = self.current_timescale
+        timescale = self.active_timescale
         
         allocation = self.task_manager.get_budgeted( task_name, timescale )
         usage = self.task_manager.get_usage( task_name, timescale )
         row = self.task_manager.get_row( task_name )
         # policy = self.task_manager.get_policy( task_name, timescale )
 
-
-        print( 'adding task to task table' )
-        print( allocation )
-        print( usage )
-        print( row ) 
-
-        # add row at bottom 
-        self.table.insertRow( self.table.rowCount() )
+        # add row at bottom
+        if append : 
+            self.table.insertRow( self.table.rowCount() )
 
         task_name_label = QLabel( task_name )
         self.table.setCellWidget( row, 0, task_name_label )
@@ -205,17 +226,10 @@ class TaskTableWidget( QWidget ) :
         
         bar = MyProgressBar()
         bar.setMaximum( TASK_BAR_MAX )
-        bar.setMinimum( 0 )
-
-        if allocation == 0 : 
-            progress = 0
-        else : 
-            progress = TASK_BAR_MAX * usage / allocation
-            
-        bar.setValue( progress ) 
-        bar.setOrientation( QtCore.Qt.Horizontal )
-        
+              
         self.table.setCellWidget( row, 2, bar )
+
+        self.update_progress_bar( task_name ) 
         
         # bar = self.table.item( r, 2 )
         # print( bar )
@@ -233,17 +247,6 @@ class TaskTableWidget( QWidget ) :
         ...
         
 
-    def daily_button_clicked( self ) :
-        ...
-
-        
-    def weekly_button_clicked( self ) :
-        ...
-
-        
-    def monthly_button_clicked( self ) :
-        ...
-
         
     def set_active_row( self, task_name ) :
         ... 
@@ -254,19 +257,27 @@ class TaskTableWidget( QWidget ) :
         self.update_progress_bar( task_name ) 
         
 
+    def load_table_row( self, task_name ) :
+        timescale = self.active_timescale        
+        usage = self.task_manager.get_usage( task_name, timescale )
+        budgeted = self.task_manager.get_budgeted( task_name, timescale )
+        row = self.task_manager.get_row( task_name )
+
+        budgeted_entry = self.table.cellWidget( row, 1 )
+        budgeted_entry.setText( str( '%.1f' % budgeted ) )
+        
+        self.update_progress_bar( task_name ) 
+
+        
+        
     def update_progress_bar( self, task_name ) :
         # task = self.task_manager.active_tasks[ row ]
 
-        timescale = self.current_timescale
+        timescale = self.active_timescale
         
         usage = self.task_manager.get_usage( task_name, timescale )
         allocation = self.task_manager.get_budgeted( task_name, timescale )
         row = self.task_manager.get_row( task_name )
-
-        print( 'update progress bar' ) 
-        print( allocation )
-        print( usage )
-        print( row ) 
         
         if allocation == 0 : 
             progress = 0 
@@ -277,9 +288,6 @@ class TaskTableWidget( QWidget ) :
         
         bar = self.table.cellWidget( row, 2 )
         bar.setValue( progress )
-
-        # if progress == TASK_BAR_MAX :
-            
 
         hours, mins = divmod( usage * 60, 60 )
         label = '%d:%s' % ( int( hours ), str( int( mins ) ).zfill(2) )
@@ -294,11 +302,12 @@ class TaskTableWidget( QWidget ) :
 
 
     # reload all data from task manager 
-    def reload( self ) :
+    def reload_table( self ) :
 
         for task_name in self.task_manager.get_task_names() :
-            # self.update_usage( r )             
-            self.update_progress_bar( task_name ) 
+            # self.update_usage( r )
+            self.load_table_row( task_name )
+            # self.update_progress_bar( task_name ) 
         
 
 
