@@ -13,7 +13,7 @@ import gui_config
 
 
 
-USE_SECONDS = 1
+USE_SECONDS = 0
 
 
 
@@ -144,11 +144,14 @@ class PomodoroWidget( QWidget ) :
     # automatically triggers task_cbox_activated. 
     def set_task_cbox_task( self, task_name ) :
 
-        print( task_name ) 
+        # print( task_name )
+
+        if not task_name :
+            return
 
         index = self.task_cbox.findText( task_name );
 
-        print( index ) 
+        # print( index ) 
         
         if index != -1 :
             self.task_cbox.setCurrentIndex( index );
@@ -160,15 +163,20 @@ class PomodoroWidget( QWidget ) :
         
         
         
-    def update_task_cbox( self ) :
+    def update_task_cbox( self, set_default_active_task = 1 ) :
         self.task_cbox.clear()
 
-        tasks = self.task_manager.get_task_names()
+        # tasks = self.task_manager.get_task_names()
+        tasks = self.controller.task_table.get_task_names() 
         self.task_cbox.addItems( tasks )
 
-        task_name = self.task_cbox.currentText()
-        self.active_task_name = task_name
+        if set_default_active_task : 
+            task_name = self.task_cbox.currentText()
+            self.active_task_name = task_name
 
+        else :
+            self.set_task_cbox_task() 
+            
 
         
     def task_cbox_activated( self ) :
@@ -213,6 +221,7 @@ class PomodoroWidget( QWidget ) :
         self.task_previous_times = self.task_manager.get_usages( self.active_task_name )
         self.update_timer() 
 
+
         
     # def full_screen_button_clicked( self ) :
     #     ...
@@ -228,7 +237,7 @@ class PomodoroWidget( QWidget ) :
     # def reset( self ) :
     #     ... 
 
-
+    
     
     def update_timer_label( self ) :
         

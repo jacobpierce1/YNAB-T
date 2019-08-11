@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
 
 
-from task_manager import TaskManager 
+from task_manager import TaskManager
 
 
 # bar resolution 
@@ -64,18 +65,29 @@ class MyProgressBar( QProgressBar ):
 
 
 
+# class DraggbaleTableWidget( QTableWidget ) :
+
+    
+
+                
+
+
+
+                
+
 class TaskTableWidget( QWidget ) :
+# class TaskTableManager( QWidget ) :
 
 
     # active_row = None
     active_timescale = 0
-    active_task_name = None 
-    
+    active_task_name = None
+        
     
     def __init__( self, controller ) :
         super().__init__()
         self.controller = controller
-
+    
 
         
     def init( self ) :
@@ -107,19 +119,38 @@ class TaskTableWidget( QWidget ) :
 
         nrows = len( self.task_manager ) 
         ncols = 3 # 4
-        
-        self.table = QTableWidget( nrows, ncols )
-        self.table.cellDoubleClicked.connect( self.cell_double_clicked ) 
 
+        # self.table = TableWidgetDragRows( nrows, ncols ) 
+        self.table = QTableWidget( nrows, ncols )
+
+        self.table.setDragEnabled(True)
+        self.table.setAcceptDrops(True)
+        self.table.viewport().setAcceptDrops(True)
+        self.table.setDragDropOverwriteMode(False)
+        self.table.setDropIndicatorShown(True)
+        self.table.setSelectionMode( QAbstractItemView.SingleSelection )
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setDragDropMode(QAbstractItemView.InternalMove)
+
+        # hack
+        self.table.dropEvent = self.dropEvent 
+        
+        # self.table.cellDoubleClicked.connect( self.cell_double_clicked ) 
+        self.table.cellClicked.connect( self.cell_double_clicked )
+        
         self.table.setHorizontalHeaderLabels( [ 'Task', 'Budgeted', 'Spent',
                                                 'Progress' ] )
         
         # self.table.horizontalHeader().setSectionResizeMode( QHeaderView.Stretch ) 
         # self.table.verticalHeader().setSectionResizeMode( QHeaderView.Stretch )
 
-        self.table.horizontalHeader().setStretchLastSection( 1 );
+        self.table.horizontalHeader().setStretchLastSection( 1 )
 
-        
+        self.table.setSelectionBehavior( QAbstractItemView.SelectRows )
+        self.table.setSelectionMode( QAbstractItemView.SingleSelection )
+        self.table.verticalHeader().setSectionsMovable( 1 );
+
         self.table.setColumnWidth( 0, 200 )
         self.table.setColumnWidth( 1, 80 )
         # self.table.setColumnWidth( 2, 0 ) 
@@ -147,6 +178,92 @@ class TaskTableWidget( QWidget ) :
         layout.addLayout( hlayout ) 
 
 
+
+    # note: for some reason, this correctly deletes the table that
+    # was dragged originally. i'm not sure if it's actually deleted
+    # behind the scenes, or if this is a QT memory leak. keeping for now
+    # since it works and i can't see any performance issues if there is a leak.
+    
+    def dropEvent(self, event: QDropEvent):
+
+        if not event.isAccepted() : # and event.source() == self:
+
+            drop_row = self.drop_on( event ) 
+
+            row = self.table.selectionModel().selectedRows()[0].row()
+            task_name = self.table.cellWidget( row, 0 ).text() 
+
+            print( row ) 
+            print( drop_row ) 
+
+            # rows = [row  ] 
+
+
+            # if row < drop_row:
+            #     drop_row -= 1
+
+            
+            self.table.insertRow( drop_row )
+
+            if row > drop_row :
+                row += 1
+
+            print( 'removing row: ', row ) 
+                
+            self.table.removeRow( row )
+
+                        
+            self.add_task_to_table( task_name, append = 0, row = drop_row ) 
+
+            # self.setCellWidget( drop_row, 'testing'
+
+
+            
+            
+            # event.accept()
+
+            print( 'rowcount', self.table.rowCount() )
+
+            # self.table.repaint()
+            
+            # self.sync_task_manager_rows() 
+            # self.sync_pomodoro_cbox_rows()
+
+        
+            # for row_index in range(len(rows_to_move)):
+            #     self.cellWidget(drop_row + row_index, 0).setSelected(True)
+            #     self.cellWidget(drop_row + row_index, 1).setSelected(True)
+        # self.table.super().dropEvent(event)
+
+        # print( self.cellWidget( drop_row, 0 ).text() ) 
+
+
+    
+    def drop_on(self, event):
+
+        index = self.table.indexAt(event.pos())
+
+        if not index.isValid():
+            return self.table.rowCount()
+
+        return index.row() + 1 if self.is_below(event.pos(), index) else index.row()
+
+    
+    def is_below(self, pos, index):
+        rect = self.table.visualRect(index)
+        margin = 2
+        if pos.y() - rect.top() < margin:
+            return False
+        elif rect.bottom() - pos.y() < margin:
+            return True
+        # noinspection PyTypeChecker
+        return rect.contains(pos, True) and not (int(self.table.model().flags(index))
+                                                 & Qt.ItemIsDropEnabled) and pos.y() >= rect.center().y()
+
+
+
+
+        
     def cell_double_clicked( self, row, col ) :
 
         if col != 0 :
@@ -199,13 +316,18 @@ class TaskTableWidget( QWidget ) :
 
             
 
-    def add_task_to_table( self, task_name, append = 1 ) :
+    def add_task_to_table( self, task_name, append = 1, row = -1 ) :
         
         timescale = self.active_timescale
         
         allocation = self.task_manager.get_budgeted( task_name, timescale )
         usage = self.task_manager.get_usage( task_name, timescale )
-        row = self.task_manager.get_row( task_name )
+
+        if row == -1 : 
+            row = self.task_manager.get_row( task_name )
+
+        print( task_name, row ) 
+            
         # policy = self.task_manager.get_policy( task_name, timescale )
 
         # add row at bottom
@@ -239,18 +361,79 @@ class TaskTableWidget( QWidget ) :
         # self.table.
 
 
+    def change_row_position( self, old_row, new_row ) :
+        ... 
+        
 
     # todo: move to inactive tasks 
     def delete_button_clicked( self ) :
         # task_name = self.get_active_task_name()
         # self.task_manager.delete_task( task_name ) 
-        ...
+
+        try : 
+            active_row = self.table.selectionModel().selectedRows()[0].row()
+        except :
+            return 
+
+        task_name = self.table.cellWidget( active_row, 0 ).text() 
+
+        buttonReply = QMessageBox.question( self, 'Warning',
+                                            'Delete task \"%s\"?' % task_name,
+                                           QMessageBox.Yes | QMessageBox.No,
+                                           QMessageBox.No)
+
+        if buttonReply != QMessageBox.Yes:
+            return
+        
+        self.table.removeRow( active_row ) 
+            
+        self.task_manager.delete_task( task_name )
+
+        # get new active task 
+        try : 
+            active_row = self.table.selectionModel().selectedRows()[0].row()
+            task_name = self.table.cellWidget( active_row, 0 ).text() 
+            self.controller.pomodoro.active_task = task_name
+        except :
+            self.controller.pomodoro.active_task = ''
+            return 
+                
+        task_name = self.table.cellWidget( active_row, 0 ).text() 
+        
+        self.sync_task_manager_rows() 
+        self.sync_pomodoro_cbox_rows() 
+        
+        
+        # active_row = 
+        
+        # self.delete_row( 
         
 
+    def get_task_names( self ) :
+        return [ self.table.cellWidget( row, 0 ).text()
+                 for row in range(  self.table.rowCount() ) ]
+        
         
     def set_active_row( self, task_name ) :
         ... 
+
+
+    # set the rows of the task_manager to all current rows in the table
+    def sync_task_manager_rows( self ) :
         
+        for row in range( self.table.rowCount() ) :
+
+            task_name = self.table.cellWidget( row, 0 ).text() 
+
+            print( 'syncing rows: ', row, task_name ) 
+            
+            self.task_manager.set_row( task_name, row ) 
+
+        
+
+    def sync_pomodoro_cbox_rows( self ) :        
+        self.controller.pomodoro.update_task_cbox() 
+            
 
     def update_active_progress_bar( self ) :
         task_name = self.controller.pomodoro.active_task_name

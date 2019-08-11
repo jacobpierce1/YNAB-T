@@ -4,6 +4,7 @@ import time
 import h5py
 import numpy as np 
 import sys
+# import threading 
 
 import gui_config
 
@@ -61,7 +62,9 @@ class TaskManager( object ) :
         # self.load_active_tasks()
         # mode: read / write if exists, else create 
         self.current_progress_file = h5py.File( CURRENT_PROGRESS_FILE, 'a' )
-        
+
+        # self.lock = threading.Lock()
+            
         # cron = threading.Thread( target = self.cron_save_active_tasks,
         #                                                   daemon = 1 )
         # cron.start() 
@@ -104,7 +107,8 @@ class TaskManager( object ) :
             
         
     def set_budgeted( self, task_name, budgeted, timescale ) :
-        try : 
+        try :
+            # with self.lock : 
             self.current_progress_file[ task_name ][ 'budgeted' ][ timescale ] = budgeted
         except :
             print( 'ERROR: unable to set budgeted amount.' ) 
@@ -119,6 +123,7 @@ class TaskManager( object ) :
             
     def set_usage( self, task_name, usage, timescale ) : 
         try :
+            # with self.lock : 
             self.current_progress_file[ task_name ][ 'usage' ][ timescale ] = usage
         except :
             print( 'ERROR: program crash, error setting usage' )
@@ -127,9 +132,10 @@ class TaskManager( object ) :
             
     def set_usages( self, task_name, usages ) : 
         try :
+            #with self.lock : 
             self.current_progress_file[ task_name ][ 'usage' ][:] = usages
         except :
-            print( 'ERROR: program crash, error setting usages' )
+            print( 'ERROR: program crash, error setting usages for task: ' + task_name )
             sys.exit(0)
 
             
@@ -150,7 +156,8 @@ class TaskManager( object ) :
         
         
     def set_policy( self, task_name, policy, timescale = None ) :
-        try : 
+        try :
+            # with self.lock : 
             self.current_progress_file[ task_name ][ 'policy' ][:] = policy 
         except :
             print( 'ERROR: unable to set policy.' ) 
@@ -163,9 +170,15 @@ class TaskManager( object ) :
             print( 'ERROR: unable to get policy.' ) 
 
             
-    def set_row( self, task_name, row ) :
-        try : 
-            self.current_progress_file[ task_name ][ 'row' ] = row
+    def set_row( self, task_name, row, use_lock = 0 ) :
+        try :
+            # if use_lock : 
+            # self.lock.acquire() 
+
+            self.current_progress_file[ task_name ][ 'row' ][0] = row
+
+            # if use_lock : 
+
         except :
             print( 'ERROR: unable to set row.' ) 
 
@@ -179,6 +192,18 @@ class TaskManager( object ) :
         
     def get_task_names( self ) :
         return self.current_progress_file.keys()
+ 
+    
+    
+    def get_rows( self ) :
+        return { key : self.current_progress_file[ task_name ][ 'row' ][0]
+                 for key in self.current_progress_file }
+
+
+    def set_rows( self, rows_dict ) :
+        for task_name, row in rows_dict.items() :
+            self.set_row( task_name, row ) 
+            # self.current_progress_file[ key ][ 'row' ] = row
         
 
     # todo: recompute current progress from database. debug feature, but ideally
