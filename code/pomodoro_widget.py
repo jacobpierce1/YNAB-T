@@ -219,6 +219,8 @@ class PomodoroWidget( QWidget ) :
         print( self.active_task_name ) 
 
         self.task_previous_times = self.task_manager.get_usages( self.active_task_name )
+
+        # with self.lock : 
         self.update_timer() 
 
 
@@ -253,8 +255,15 @@ class PomodoroWidget( QWidget ) :
         d = ImageDraw.Draw(img)
 
         font_type  = ImageFont.truetype( "Arial.ttf", 200 )
+
+        if self.running :
+            fill = ( 11, 186, 41, 255 )
+        else :
+            fill = ( 217, 15, 27, 255 )
+
+        # fill = ( 0, 0, 0, 255 ) 
         
-        d.text(( 0,0), label, fill = ( 0, 0, 0, 255 ), font = font_type)
+        d.text(( 0,0), label, fill = fill, font = font_type)
         
         img.save( label_icon_path )
 

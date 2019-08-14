@@ -138,6 +138,7 @@ class TaskTableWidget( QWidget ) :
         
         # self.table.cellDoubleClicked.connect( self.cell_double_clicked ) 
         self.table.cellClicked.connect( self.cell_double_clicked )
+        # self.table.cellRightClicked.connect( self.cell_right_clicked ) 
         
         self.table.setHorizontalHeaderLabels( [ 'Task', 'Budgeted', 'Spent',
                                                 'Progress' ] )
@@ -196,38 +197,24 @@ class TaskTableWidget( QWidget ) :
             print( row ) 
             print( drop_row ) 
 
-            # rows = [row  ] 
-
-
-            # if row < drop_row:
-            #     drop_row -= 1
-
             
             self.table.insertRow( drop_row )
 
             if row > drop_row :
                 row += 1
 
-            print( 'removing row: ', row ) 
-                
             self.table.removeRow( row )
 
                         
             self.add_task_to_table( task_name, append = 0, row = drop_row ) 
 
-            # self.setCellWidget( drop_row, 'testing'
-
-
-            
-            
             # event.accept()
 
             print( 'rowcount', self.table.rowCount() )
 
-            # self.table.repaint()
             
             # self.sync_task_manager_rows() 
-            # self.sync_pomodoro_cbox_rows()
+            self.sync_pomodoro_cbox_rows()
 
         
             # for row_index in range(len(rows_to_move)):
@@ -277,7 +264,28 @@ class TaskTableWidget( QWidget ) :
         # start timer if not running already 
         if not self.controller.pomodoro.running :
             self.controller.pomodoro.toggle_task_button_clicked() 
+
+
+
+            
+    def cell_right_clicked( self, row, col ) :
+
+        if col != 0 :
+             return 
          
+        label = self.table.cellWidget( row, 0 )
+        task_name = label.text()
+        
+        # self.controller.pomodoro.set_task_cbox_task( task_name )
+
+        # # start timer if not running already 
+        # if not self.controller.pomodoro.running :
+        #     self.controller.pomodoro.toggle_task_button_clicked() 
+
+        print( task_name ) 
+        
+
+            
         
     def timescale_combobox_activated( self ) :
          self.active_timescale = self.timescale_combobox.currentIndex()
