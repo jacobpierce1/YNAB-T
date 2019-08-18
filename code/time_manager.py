@@ -88,10 +88,11 @@ class TimeManager( object ) :
     def read_last_used_date( self ) :
         try : 
             with open( LAST_USED_DATE_FILE, 'r' ) as f :
-                date_str = f.read() 
+                date_str = f.read().strip( '\n' )
             self.last_used_date = datetime.datetime.strptime( date_str, '%Y-%m-%d' ).date() 
 
         except :
+            print( 'WARNING: error reading last used date, defaulting to today')
             self.write_last_used_date()
             self.last_used_date = self.today
 

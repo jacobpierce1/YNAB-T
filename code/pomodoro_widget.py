@@ -12,9 +12,10 @@ import sys
 import gui_config
 
 
-
-USE_SECONDS = 0
-
+if gui_config.DEVELOPER_MODE :  
+    USE_SECONDS = 1
+else : 
+    USE_SECONDS = 0
 
 
 
