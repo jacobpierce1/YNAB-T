@@ -23,32 +23,6 @@ EXCESS_GOOD, EXCESS_BAD, EXCESS_NEUTRAL = [ 0, 1, 2 ]
 
 
 
-# class Task( object ) :
-    
-#     def __init__( self, task_name, allocation = 0,
-#                   usage = 0, policy = EXCESS_NEUTRAL ) :
-
-#         self.name = task_name
-#         self.allocation = allocation
-#         self.usage = usage
-#         self.policy = policy
-        
-
-    # def to_string( self ) :
-    #     return '%s\t%.1f\t%.2f\t%d' % ( self.name, self.allocation,
-    #                                     self.usage, self.policy )
-        
-    
-    # @classmethod
-    # def from_string( cls, s ) :
-    #     tmp = [ t(x) for t,x in zip( [ str, float, float, int ],
-    #                                  s.split( '\t' ) ) ] 
-    #     task_name, allocation, usage, policy = tmp
-    #     return cls( task_name, allocation, usage, policy ) 
-
-
-
-
     
     
 class TaskManager( object ) :
@@ -96,7 +70,7 @@ class TaskManager( object ) :
         print( 'adding row: ' + str( row ) ) 
         self.current_progress_file[ task_name ][ 'row' ][...] = row 
         
-        #        self.set_row( task_name, len( self ) )
+        # self.set_row( task_name, len( self ) )
                            
 
     def delete_task( self, task_name ) :

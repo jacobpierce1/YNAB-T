@@ -213,7 +213,7 @@ class TaskTableWidget( QWidget ) :
             print( 'rowcount', self.table.rowCount() )
 
             
-            # self.sync_task_manager_rows() 
+            self.sync_task_manager_rows() 
             self.sync_pomodoro_cbox_rows()
 
         
@@ -428,13 +428,9 @@ class TaskTableWidget( QWidget ) :
 
     # set the rows of the task_manager to all current rows in the table
     def sync_task_manager_rows( self ) :
-        
         for row in range( self.table.rowCount() ) :
-
             task_name = self.table.cellWidget( row, 0 ).text() 
-
             print( 'syncing rows: ', row, task_name ) 
-            
             self.task_manager.set_row( task_name, row ) 
 
         

@@ -24,6 +24,11 @@ from time_manager import TimeManager
 import signal
 import sys 
 
+
+
+
+
+
 # register control-c as program quit 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 

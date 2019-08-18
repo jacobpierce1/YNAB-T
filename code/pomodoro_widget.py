@@ -103,6 +103,13 @@ class PomodoroWidget( QWidget ) :
         self.toggle_task_button.clicked.connect( self.toggle_task_button_clicked ) 
         hlayout.addWidget( self.toggle_task_button )
 
+        # system tray
+        # text = QLabel( 'testing testing' ) 
+        icon = QIcon( 'icon.png' ) 
+        self.tray = QSystemTrayIcon()
+        self.tray.setIcon( icon )
+        self.tray.setVisible(True)
+
         # set to "running", but immediately reset.
         self.running = 1 
         self.toggle_task_button_clicked() 
@@ -117,14 +124,6 @@ class PomodoroWidget( QWidget ) :
         # hlayout.addWidget( full_screen_button ) 
 
         layout.addLayout( hlayout )
-
-
-        # system tray
-        # text = QLabel( 'testing testing' ) 
-        icon = QIcon( 'icon.png' ) 
-        self.tray = QSystemTrayIcon()
-        self.tray.setIcon( icon )
-        self.tray.setVisible(True)
 
 
         self.timer_updated_signal.connect( self.task_table.update_active_progress_bar )
@@ -208,7 +207,7 @@ class PomodoroWidget( QWidget ) :
             self.previous_time += time.time() - self.start_time
             self.toggle_task_button.setText( 'Paused' ) 
             self.toggle_task_button.setStyleSheet("background-color: #E55959")
-            
+            self.update_timer_label() 
 
                 
     def reset_button_clicked( self ) :
