@@ -203,18 +203,21 @@ class TaskTableWidget( QWidget ) :
             if row > drop_row :
                 row += 1
 
-            self.table.removeRow( row )
-
-                        
             self.add_task_to_table( task_name, append = 0, row = drop_row ) 
 
+            self.table.removeRow( row )
+
+
+
+            # if drow_row > row : 
+
+            self.sync_task_manager_rows() 
+            self.sync_pomodoro_cbox_rows()
+                        
             # event.accept()
 
             print( 'rowcount', self.table.rowCount() )
 
-            
-            self.sync_task_manager_rows() 
-            self.sync_pomodoro_cbox_rows()
 
         
             # for row_index in range(len(rows_to_move)):
@@ -314,7 +317,10 @@ class TaskTableWidget( QWidget ) :
         task_name, okPressed = QInputDialog.getText( self, 'Enter Task Name', '',
                                                 QLineEdit.Normal, '' )
         
-        if okPressed and task_name != '':
+        if ( okPressed 
+            and task_name != '' 
+            and task_name not in self.task_manager.get_task_names() ) :
+
             self.task_manager.add_task( task_name )
             self.add_task_to_table( task_name ) 
             self.controller.pomodoro.update_task_cbox()
@@ -334,6 +340,7 @@ class TaskTableWidget( QWidget ) :
         if row == -1 : 
             row = self.task_manager.get_row( task_name )
 
+        print( 'adding task to table:')
         print( task_name, row ) 
             
         # policy = self.task_manager.get_policy( task_name, timescale )
@@ -359,7 +366,8 @@ class TaskTableWidget( QWidget ) :
               
         self.table.setCellWidget( row, 2, bar )
 
-        self.update_progress_bar( task_name ) 
+        # bug here: wrong task name gets looked up 
+        self.update_progress_bar( task_name, row = row ) 
         
         # bar = self.table.item( r, 2 )
         # print( bar )
@@ -428,7 +436,13 @@ class TaskTableWidget( QWidget ) :
 
     # set the rows of the task_manager to all current rows in the table
     def sync_task_manager_rows( self ) :
+        
+        print( 'in sync_task_manager_rows')
+
         for row in range( self.table.rowCount() ) :
+            
+            print( row ) 
+
             task_name = self.table.cellWidget( row, 0 ).text() 
             print( 'syncing rows: ', row, task_name ) 
             self.task_manager.set_row( task_name, row ) 
@@ -457,15 +471,17 @@ class TaskTableWidget( QWidget ) :
 
         
         
-    def update_progress_bar( self, task_name ) :
+    def update_progress_bar( self, task_name, row = None ) :
         # task = self.task_manager.active_tasks[ row ]
 
         timescale = self.active_timescale
         
         usage = self.task_manager.get_usage( task_name, timescale )
         allocation = self.task_manager.get_budgeted( task_name, timescale )
-        row = self.task_manager.get_row( task_name )
-        
+
+        if row is None : 
+            row = self.task_manager.get_row( task_name )
+
         if allocation == 0 : 
             progress = 0 
         else :

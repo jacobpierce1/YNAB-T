@@ -60,7 +60,7 @@ class TimeManager( object ) :
     def check_time( self ) :
         for i in range( gui_config.NUM_TIMESCALES ) :
 
-            print( self.reset_dates[i] )
+            # print( self.reset_dates[i] )
                 
             if self.today >= self.reset_dates[i] :
                 self.task_manager.clear_progress( i )

@@ -109,6 +109,7 @@ class PomodoroWidget( QWidget ) :
         self.tray = QSystemTrayIcon()
         self.tray.setIcon( icon )
         self.tray.setVisible(True)
+        self.tray.activated.connect( self.toggle_task_button_clicked )
 
         # set to "running", but immediately reset.
         self.running = 1 
@@ -214,9 +215,6 @@ class PomodoroWidget( QWidget ) :
         self.start_time = time.time()
         self.previous_time = 0
 
-        print( 'reset_button_clicked' )
-        print( self.active_task_name ) 
-
         self.task_previous_times = self.task_manager.get_usages( self.active_task_name )
 
         # with self.lock : 
@@ -224,21 +222,6 @@ class PomodoroWidget( QWidget ) :
 
 
         
-    # def full_screen_button_clicked( self ) :
-    #     ...
-
-
-    # def pause( self ) :
-    #     ...
-
-
-    # def start( self ) :
-    #     ... 
-        
-    # def reset( self ) :
-    #     ... 
-
-    
     
     def update_timer_label( self ) :
         
