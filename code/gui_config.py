@@ -12,6 +12,7 @@ WINDOW_HEIGHT = 600
 
 NUM_TIMESCALES = 5
 
+DEFAULT_NUM_TRANSACTIONS = 10
 
 
 if len( sys.argv ) > 1 : 

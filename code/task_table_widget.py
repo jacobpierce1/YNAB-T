@@ -340,8 +340,8 @@ class TaskTableWidget( QWidget ) :
         if row == -1 : 
             row = self.task_manager.get_row( task_name )
 
-        print( 'adding task to table:')
-        print( task_name, row ) 
+        # print( 'adding task to table:')
+        # print( task_name, row ) 
             
         # policy = self.task_manager.get_policy( task_name, timescale )
 
