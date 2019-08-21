@@ -1,24 +1,15 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import * 
 from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
 
 import numpy as np 
+import datetime
 
 import gui_config
+from time_transaction import TimeTransaction
 
 
-
-class TimeTransaction( object ) :
-
-	def __init__( self, task_id = -1, task_name = None, 
-		start_time = None, end_time = None ) : 
-
-		self.task_id = task_id
-		self.task_name = task_name 
-		self.start_time = start_time 
-		self.end_time = end_time 
-
- 
 
 class TimeTransactionWidget( QWidget ) :
 # class TaskTableManager( QWidget ) :
@@ -55,13 +46,13 @@ class TimeTransactionWidget( QWidget ) :
 		hlayout = QHBoxLayout()
 		vlayout.addLayout( hlayout )
 
-		add_transaction_button = QPushButton( 'Add Transaction' )
+		add_transaction_button = QPushButton( '+' )
 		add_transaction_button.clicked.connect( 
 			self.add_transaction_button_clicked )
 		hlayout.addWidget( add_transaction_button ) 
 
 
-		delete_transaction_button = QPushButton( 'Add Transaction' )
+		delete_transaction_button = QPushButton( '-' )
 		delete_transaction_button.clicked.connect( 
 			self.delete_transaction_button_clicked )
 		hlayout.addWidget( delete_transaction_button ) 
@@ -71,23 +62,40 @@ class TimeTransactionWidget( QWidget ) :
 
 
 	def add_transaction_button_clicked( self ) : 
-		print( 'clicked' )
-		
+		self.dialog = AddTransactionDialog( self.controller ) 
+		self.dialog.show()
+
+		# add_pressed, transaction = self.dialog.get_response()
+
+		# if add_pressed : 
+		# 	print(1)
+		# else : 
+		# 	print( 2 )
+
 
 	def delete_transaction_button_clicked( self ) : 
 		print( 'clicked' )
 
 
-	def add_transaction_to_table( self, transaction, row = 0 ) : 
+	# append = 1 -> insert new row at top of table. else update the specified row. 
+	def add_transaction_to_table( self, transaction, append = 1, row = 0 ) : 
 
-		task_name   = QLabel(         transaction.task_name  )		
-		start_entry = QLineEdit( str( transaction.start_time ) )
-		stop_entry  = QLineEdit( str( transaction.stop_time  ) )
+		task_name   = QLabel( transaction.task_name )		
+		
+		time_format = '%H:%M:%S'
+		date_format = '%m/%d/%Y'
+
+		start_time = QLabel( transaction.start_time.strftime( time_format ) )
+		stop_time  = QLabel( transaction.stop_time.strftime(  time_format ) )
 
 		if append : 
 			row = 0
 			self.table.insertRow( row )
 
+		self.table.setCellWidget( 0, 0, task_name )
+		self.table.setCellWidget( 0, 1, start_time )
+		self.table.setCellWidget( 0, 2, stop_time )
+		
 
 
 	def get_transaction( self ) : 
@@ -101,53 +109,90 @@ class TimeTransactionWidget( QWidget ) :
 
 
 
+class TransactionDialog( QDialog ) : 
 
-class AddTransactionDialog( QDialog ) :
 
-    def __init__( self ) :
-        super().__init__() 
+	def __init__( self, controller ) :
+		super().__init__() 
 
-        # disable blocking of main app 
-        self.setWindowModality( Qt.NonModal )
-        
-        self.setWindowTitle( 'Plot Actions' ) 
+		self.controller = controller
+		self.add_pressed = 0 
 
-        layout = QVBoxLayout()
+		# disable blocking of main app 
+		self.setWindowModality( Qt.NonModal )
+		# self.setWindowModality(QtCore.Qt.WindowModal)
+		self.setWindowTitle( 'Add Transaction' ) 
 
-        save_plot_button = QPushButton( 'Save Plot' ) 
-        # todo 
-        layout.addWidget( save_plot_button ) 
+		layout = QFormLayout()
 
-        # save gif / movie interface 
-        tmplayout = QHBoxLayout()
+		self.task_name_combobox = QComboBox()
+		task_names = self.controller.task_manager.get_task_names()
+		self.task_name_combobox.addItems( task_names )
+		layout.addRow( 'Task Name', self.task_name_combobox )
 
-        movie_type_combobox = QComboBox()
-        for movie_type in MOVIE_TYPES :
-            movie_type_combobox.addItem( movie_type ) 
-            tmplayout.addWidget( movie_type_combobox )
-        
-        start_frame_entry = QLineEdit( '' )
-        start_frame_entry.setPlaceholderText( 'Start Frame' ) 
-        start_frame_entry.setToolTip( 'Start Frame' ) 
-        tmplayout.addWidget( start_frame_entry ) 
-        
-        stop_frame_entry = QLineEdit() 
-        stop_frame_entry.setToolTip( 'stop frame' )
-        stop_frame_entry.setPlaceholderText( 'stop frame' ) 
-        tmplayout.addWidget( stop_frame_entry )
+		self.start_time_widget = QDateTimeEdit( datetime.datetime.now() )
+		layout.addRow( 'Start Time', self.start_time_widget )
 
-        frame_stride_entry = QLineEdit()
-        frame_stride_entry.setToolTip( 'Frame stride' ) 
-        frame_stride_entry.setPlaceholderText( 'Frame stride' ) 
-        tmplayout.addWidget( frame_stride_entry ) 
-        
-        frame_rate_entry = QLineEdit( str(1) )
-        frame_rate_entry.setToolTip( 'Frame Rate in Hz' ) 
-        tmplayout.addWidget( frame_rate_entry ) 
-        
-        save_movie_button = QPushButton( 'Save' )
-        tmplayout.addWidget( save_movie_button  )
-        
-        layout.addLayout( tmplayout  )  
+		self.stop_time_widget = QDateTimeEdit( datetime.datetime.now() )
+		layout.addRow( 'Stop Time', self.stop_time_widget )
 
-        self.setLayout( layout ) 
+		self.add_button = QPushButton( 'Add' )
+		# add_button.clicked.connect( self.add_button_clicked )
+		layout.addRow( self.add_button ) 
+
+		self.setLayout( layout ) 
+
+
+	def get_response( self ) : 
+		
+		task_id = -1	# assigned later
+		task_name = self.task_name_combobox.currentText()
+		start_time = self.start_time_widget.dateTime().toPyDateTime() 
+		stop_time = self.stop_time_widget.dateTime().toPyDateTime() 
+
+		transaction = TimeTransaction( task_id, task_name, start_time, stop_time )
+
+		return transaction
+
+
+
+
+
+
+class AddTransactionDialog( TransactionDialog ) :
+
+	def __init__( self, controller ) : 
+		super().__init__( controller ) 
+		self.add_button.clicked.connect( self.add_button_clicked )
+
+
+	def add_button_clicked( self ) : 
+		# self.add_pressed = 1 
+		transaction = self.get_response()
+		task_id = self.controller.time_transaction_manager.db.get_unique_task_id() 
+		transaction.task_id = task_id
+
+		self.controller.time_transaction_widget.add_transaction_to_table( transaction )
+		self.controller.time_transaction_manager.db.insert_transaction( transaction ) 
+
+		self.close()
+
+
+
+
+class EditTransactionDialog( TransactionDialog ) : 
+
+	def __init__( self, controller ) : 
+		super().__init__( controller )
+		self.add_button.clicked.connect( self.add_button_clicked )
+
+
+	def add_button_clicked( self ) : 
+		# self.add_pressed = 1 
+		
+		transaction = self.get_response()
+
+		#todo 
+		# self.controller.add
+
+		self.close()
